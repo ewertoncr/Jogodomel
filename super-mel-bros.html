@@ -13,7 +13,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:8px;min-height:100vh;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 h1{margin:4px 0;font-size:1.35rem;text-align:center}
 .wrap{position:relative;width:min(100%,900px)}
-canvas{width:100%;aspect-ratio:2/1;display:block;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);background:#9fdcff}
+canvas{width:100%;aspect-ratio:2/1;display:block;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);background:#9fdcff}#c{display:none}#world3d{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;border-radius:12px;display:block;background:#9fdcff}
 .win{position:absolute;inset:0;background:rgba(40,20,0,.55);border-radius:12px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;font-size:clamp(1.2rem,5vw,2rem);font-weight:800}
 .win[hidden]{display:none}
 .pad{width:min(100%,900px);display:flex;justify-content:space-between;align-items:flex-start;margin-top:-4px;padding:0 10px 6px;touch-action:none;position:relative;z-index:5}
@@ -51,7 +51,7 @@ body.fs .pad{position:absolute;left:0;right:0;bottom:max(6px,env(safe-area-inset
 <h1>Super Mel Bros 🍯</h1>
 <div class="lv" id="lv"></div>
 <div class="wrap">
-<canvas id="c" role="img" aria-label="Jogo de plataforma com ela de pijama do Pooh coletando potes de mel em 10 fases"></canvas>
+<canvas id="c" role="img" aria-label="Simulação do jogo"></canvas><canvas id="world3d" aria-label="Super Mel Bros em 3D"></canvas>
 <button class="mute" id="mute" aria-label="Ligar ou desligar o som">🔊</button>
 <div class="win" id="win" hidden><div id="wt">Fase completa!</div><button id="again">Próxima fase</button></div>
 </div>
@@ -60,6 +60,7 @@ body.fs .pad{position:absolute;left:0;right:0;bottom:max(6px,env(safe-area-inset
 <div class="actions"><button data-k="a" aria-label="Usar poder (chinelo)">🩴</button><button data-k="j" class="jump">A</button></div>
 </div>
 <p class="note">Teclado: setas ou A/D andam, espaço pula, X usa o chinelo. Pegue os poderes pelo caminho!</p>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rng=s=>()=>((s=(s*1664525+1013904223)>>>0)/4294967296);
@@ -189,9 +190,37 @@ function setLevel(l){
  loveBubble=null;rescueT=0;
  everton=l===10?{x:pole+90,y:GY,tied:1,free:0,hug:0}:null;
  amb=[];if(T.amb)for(let i=0;i<T.amb[1];i++)amb.push({x:Math.random()*W,y:Math.random()*H,c:T.amb[0][i%T.amb[0].length],p:Math.random()*6});
- winEl.hidden=true;document.querySelectorAll('[data-l]').forEach(b=>b.classList.toggle('cur',+b.dataset.l==l));
+ if(ok3)build3();winEl.hidden=true;document.querySelectorAll('[data-l]').forEach(b=>b.classList.toggle('cur',+b.dataset.l==l));
 }
 // ===== áudio =====
+
+// ===== Renderizador 3D WebGL =====
+const cv3=$('world3d');let rr3=null,ss3=null,cc3=null,hh3=null,ee3=null,ok3=false,pm3=[],cm3=[],em3=[],wm3=[],mm3=null,fl3=null;
+const m3=c=>new THREE.MeshStandardMaterial({color:c,roughness:.72});
+function init3(){if(!window.THREE)return false;try{
+ rr3=new THREE.WebGLRenderer({canvas:cv3,antialias:true});rr3.setPixelRatio(Math.min(devicePixelRatio||1,1.6));rr3.setSize(cv3.clientWidth||640,cv3.clientHeight||320,false);rr3.outputColorSpace=THREE.SRGBColorSpace;rr3.toneMapping=THREE.ACESFilmicToneMapping;
+ ss3=new THREE.Scene();ss3.background=new THREE.Color('#91d8ff');ss3.fog=new THREE.Fog('#b9e5ff',55,140);cc3=new THREE.PerspectiveCamera(42,2,.1,260);cc3.position.set(4,23,40);
+ ss3.add(new THREE.HemisphereLight(0xeaf6ff,0x80613c,2.1));let sun=new THREE.DirectionalLight(0xfff0d0,3);sun.position.set(-12,28,22);ss3.add(sun);
+ hh3=new THREE.Group();let body=new THREE.Mesh(new THREE.CapsuleGeometry(.53,1.4,5,10),m3('#f0b52b'));body.position.y=1.15;hh3.add(body);
+ let head=new THREE.Mesh(new THREE.SphereGeometry(.7,18,14),m3('#e8b48d'));head.position.y=2.5;hh3.add(head);
+ let hair=new THREE.Mesh(new THREE.SphereGeometry(.72,16,10,0,Math.PI*2,0,Math.PI*.42),m3('#49301f'));hair.position.y=2.8;hh3.add(hair);
+ let tummy=new THREE.Mesh(new THREE.SphereGeometry(.43,16,12),m3('#bd4938'));tummy.scale.set(1,.65,.6);tummy.position.set(0,1.1,.45);hh3.add(tummy);
+ for(let x of [-.34,.34]){let leg=new THREE.Mesh(new THREE.CapsuleGeometry(.17,.6,3,8),m3('#59351f'));leg.position.set(x,.34,0);hh3.add(leg);let arm=new THREE.Mesh(new THREE.CapsuleGeometry(.14,.7,3,8),m3('#f0b52b'));arm.position.set(x*1.9,1.3,0);arm.rotation.z=x<0?-.3:.3;hh3.add(arm)}
+ ss3.add(hh3);ee3=new THREE.Group();let eb=new THREE.Mesh(new THREE.CapsuleGeometry(.5,1.2,4,8),m3('#c9b99b'));eb.position.y=1;ee3.add(eb);let eh=new THREE.Mesh(new THREE.SphereGeometry(.62,14,12),m3('#bd8b68'));eh.position.y=2.1;ee3.add(eh);ss3.add(ee3);
+ ok3=true;build3();addEventListener('resize',resize3);return true
+ }catch(e){console.warn(e);cv3.style.display='none';$('c').style.display='block';return false}}
+function resize3(){if(!rr3)return;let w=cv3.clientWidth||640,h=cv3.clientHeight||320;rr3.setSize(w,h,false);cc3.aspect=w/h;cc3.updateProjectionMatrix()}
+function build3(){if(!ok3||!L)return;[...pm3,...cm3.map(o=>o.o),...em3.map(o=>o.o),...wm3.map(o=>o.o)].forEach(o=>ss3.remove(o));pm3=[];cm3=[];em3=[];wm3=[];if(mm3)ss3.remove(mm3);if(fl3)ss3.remove(fl3);ss3.background.set(T.sky2?'#9cddff':T.sky[0]);ss3.fog.color.set(T.sky2?'#bfeaff':T.sky[0]);
+ let floor=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(100,world/10+25),80),m3(T.gr[0]));floor.rotation.x=-Math.PI/2;floor.position.set(world/20,-.1,-5);ss3.add(floor);pm3.push(floor);
+ S.forEach(s=>{if(s.t==='m')return;let ground=s.t==='g',o=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.2,s.w/10),Math.max(.22,s.h/10),ground?4:2.4),m3(ground?(T.sky2?'#edf8ff':T.gr[0]):(T.sky2?'#d8efff':T.br[0])));o.position.set((s.x+s.w/2)/10,(H-s.y-s.h/2)/10,0);ss3.add(o);pm3.push(o);if(ground){let top=new THREE.Mesh(new THREE.BoxGeometry(s.w/10,.12,4),m3(T.sky2?'#ffffff':T.gr[0]));top.position.set((s.x+s.w/2)/10,(H-s.y)/10,0);ss3.add(top);pm3.push(top)}});
+ C.forEach(c=>{let o=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.1,20),m3('#ffc52b'));o.rotation.x=Math.PI/2;o.position.set(c.x/10,(H-c.y)/10,.8);ss3.add(o);cm3.push({o,d:c})});
+ E.forEach(e=>{let o=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.42,e.s*.58),16,12),m3(e.k==='bee'?'#efc52b':e.k==='queen'?'#b94a9b':'#65a8cb'));o.position.set(e.x/10,(H-bY(e))/10,0);ss3.add(o);em3.push({o,d:e})});
+ PW.forEach(p=>{let o=new THREE.Mesh(new THREE.TorusKnotGeometry(.35,.1,48,8),m3('#ffe078'));o.position.set(p.x/10,(H-p.y)/10,.9);ss3.add(o);wm3.push({o,d:p})});
+ mm3=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),m3(T.sky2?'#edf8ff':T.br[0]));mm3.scale.set(7.5,2.3,2);mm3.position.set((mound.x+mound.w/2)/10,(H-mound.y-mound.h/2)/10,0);ss3.add(mm3);
+ fl3=new THREE.Group();let shaft=new THREE.Mesh(new THREE.CylinderGeometry(.1,.12,18,10),m3('#ad8548'));shaft.position.y=9;fl3.add(shaft);let flag=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.1,.1),m3('#f4bb35'));flag.position.set(1.2,17,0);fl3.add(flag);fl3.position.x=pole/10;ss3.add(fl3);ee3.visible=!!everton
+}
+function draw3(){if(!ok3)return;let focus=P.st==='rescue'&&everton?everton.x:P.x,cx=clamp(focus-220,0,Math.max(0,world-W))/10+11;cc3.position.x+=(cx-cc3.position.x)*.1;cc3.lookAt(cx-1,15,0);hh3.position.set(P.x/10,(H-P.y)/10,1);hh3.rotation.y=P.face<0?Math.PI:0;hh3.scale.setScalar(P.big?1.17:1);cm3.forEach((o,i)=>{o.o.visible=!o.d.got;o.o.rotation.y=frame*.06+i*.3;o.o.position.y=(H-o.d.y)/10+Math.sin(frame*.07+i)*.1});em3.forEach(o=>{o.o.visible=!!o.d.a;o.o.position.x=o.d.x/10;o.o.position.y=(H-bY(o.d))/10});wm3.forEach(o=>{o.o.visible=!o.d.got;o.o.rotation.y=frame*.03});if(everton)ee3.position.set(everton.x/10,(H-everton.y)/10,.2);rr3.render(ss3,cc3)}
+
 function note(f,d,ty,v,t0){const o=AC.createOscillator(),gn=AC.createGain();o.type=ty;o.frequency.value=f;gn.gain.setValueAtTime(v,t0);gn.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(gn);gn.connect(mg);o.start(t0);o.stop(t0+d+.02)}
 function sweep(f0,f1,d,ty,v,t0){const o=AC.createOscillator(),gn=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(f1,t0+d);gn.gain.setValueAtTime(v,t0);gn.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(gn);gn.connect(mg);o.start(t0);o.stop(t0+d+.02)}
 function music(){
@@ -639,7 +668,7 @@ function drawEwerton(ev){
 }
 // ===== controles =====
 let last=performance.now(),acc=0;
-function loop(t){acc+=Math.min(50,t-last);last=t;while(acc>=16.67){step();acc-=16.67}draw();requestAnimationFrame(loop)}
+function loop(t){acc+=Math.min(50,t-last);last=t;while(acc>=16.67){step();acc-=16.67}if(ok3)draw3();else draw();requestAnimationFrame(loop)}
 const km={ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',ArrowUp:'j',KeyW:'j',Space:'j',KeyX:'a',KeyZ:'a',Enter:'a',KeyF:'a'};
 addEventListener('keydown',e=>{const k=km[e.code];if(k){keys[k]=1;e.preventDefault()}});
 addEventListener('keyup',e=>{const k=km[e.code];if(k)keys[k]=0});
@@ -664,6 +693,7 @@ $('go').addEventListener('click',()=>{
  $('start').hidden=true;
  goFS();
  wake();
+ if(!ok3)init3();
  setLevel(1);
  requestAnimationFrame(loop);
 });
