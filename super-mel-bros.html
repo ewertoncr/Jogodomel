@@ -30,9 +30,24 @@ button[data-k="a"].on{box-shadow:0 1px 0 #2868a8}
 .lv{display:none!important}
 .note{margin:2px 0 0;font-size:.78rem;opacity:.7;text-align:center;max-width:900px}
 h1{margin:2px 0 4px;font-size:1.15rem}
+#start{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;background:linear-gradient(#7fd4ff,#fff6d4 55%,#f2a900);text-align:center}
+#start[hidden]{display:none}
+.logo{margin:0;font-size:clamp(2.6rem,11vw,5rem);line-height:.9;font-weight:900;color:#f6b400;letter-spacing:.02em;-webkit-text-stroke:6px #4a2a08;paint-order:stroke fill;text-shadow:0 8px 0 #8a4a12}
+.logo small{display:block;margin-top:10px;font-size:.38em;-webkit-text-stroke:3px #4a2a08}
+#go{width:auto;height:auto;min-width:220px;border-radius:18px;padding:16px 22px;font-size:1.25rem;box-shadow:0 6px 0 #b87a00}
+body.fs{position:fixed;inset:0;width:100%;height:100%;height:100dvh;margin:0;padding:0;overflow:hidden}
+body.fs h1,body.fs .note{display:none}
+body.fs .wrap{flex:1 1 auto;width:100%;height:100%;min-height:0}
+body.fs canvas{width:100%;height:100%;aspect-ratio:auto;border-radius:0;box-shadow:none}
+body.fs .pad{position:absolute;left:0;right:0;bottom:max(6px,env(safe-area-inset-bottom));z-index:6;margin:0}
+:fullscreen,:-webkit-full-screen{background:#1f1507}
 </style>
 </head>
 <body>
+<div id="start">
+<p class="logo">SUPER<br>MEL BROS<small>🍯 o resgate do Ewerton</small></p>
+<button id="go" type="button">Clique aqui para iniciar</button>
+</div>
 <h1>Super Mel Bros 🍯</h1>
 <div class="lv" id="lv"></div>
 <div class="wrap">
@@ -602,7 +617,22 @@ $('again').addEventListener('click',()=>setLevel(lvl<10?lvl+1:1));
 function wake(){if(!AC){const C2=window.AudioContext||window.webkitAudioContext;if(!C2)return;AC=new C2();mg=AC.createGain();mg.gain.value=muted?0:.35;mg.connect(AC.destination);setInterval(music,25)}if(AC.state=='suspended')AC.resume()}
 addEventListener('pointerdown',wake);addEventListener('keydown',wake);
 $('mute').addEventListener('click',function(){muted=!muted;this.textContent=muted?'🔇':'🔊';if(mg)mg.gain.value=muted?0:.35;this.blur()});
-setLevel(1);requestAnimationFrame(loop);
+function goFS(){
+ const el=document.documentElement;
+ const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitEnterFullscreen;
+ document.body.classList.add('fs');
+ if(req)req.call(el).catch(()=>{});
+ try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})}catch(e){}
+ setTimeout(()=>scrollTo(0,1),80);
+}
+$('go').addEventListener('click',()=>{
+ $('start').hidden=true;
+ goFS();
+ wake();
+ setLevel(1);
+ requestAnimationFrame(loop);
+});
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.add('fs')});
 })();
 </script>
 </body>
