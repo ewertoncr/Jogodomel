@@ -146,7 +146,8 @@ function gen(l){
   const clear=pole-220,cut=pole-(l==10?800:480),fin=Math.min(cut+40,clear-80);let x=0;
   const gs=[];
   while(x<cut){let e=x+280+(r()*240|0);if(e>cut)e=fin;gs.push([x,e]);x=e+(T.sky2?150+(r()*50|0):58+(r()*26|0))}
-  const lastStart=Math.min(x,clear-40);
+  const lastEnd=gs.length?gs[gs.length-1][1]:0;
+  const lastStart=T.sky2?Math.min(lastEnd+115,clear-40):Math.min(x,clear-40);
   gs.push([lastStart,len]);
   gs.forEach((q,k)=>{
    const a=q[0],b=q[1],w=b-a,isLast=(k===gs.length-1);
